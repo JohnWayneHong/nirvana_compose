@@ -3,9 +3,9 @@ package com.ggb.wanandroid.feature.search
 import androidx.lifecycle.viewModelScope
 import com.ggb.wanandroid.data.Article
 import com.ggb.wanandroid.feature.home.HomeRepository
-import com.zfx.commonlib.base.viewmodel.BaseViewModel
-import com.zfx.commonlib.ext.collectResult
-import com.zfx.commonlib.util.StringResourceHelper
+import com.ggb.commonlib.base.viewmodel.BaseViewModel
+import com.ggb.commonlib.ext.collectResult
+import com.ggb.commonlib.util.StringResourceHelper
 import com.ggb.wanandroid.R
 import com.ggb.wanandroid.data.HotKey
 import kotlinx.coroutines.flow.MutableStateFlow

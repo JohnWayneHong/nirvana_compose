@@ -6,12 +6,13 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.request.crossfade
-import com.zfx.commonlib.network.config.NetworkConfigBuilder
-import com.zfx.commonlib.network.extension.initNetworkManager
-import com.zfx.commonlib.network.interceptor.LoggingInterceptor
-import com.zfx.commonlib.network.interceptor.LoginInterceptor
-import com.zfx.commonlib.network.repository.BaseRepository
-import com.zfx.commonlib.util.StringResourceHelper
+import com.ggb.commonlib.network.config.NetworkConfigBuilder
+import com.ggb.commonlib.network.extension.initNetworkManager
+import com.ggb.commonlib.network.interceptor.LoggingInterceptor
+import com.ggb.commonlib.network.interceptor.LoginInterceptor
+import com.ggb.commonlib.network.repository.BaseRepository
+import com.ggb.commonlib.util.StringResourceHelper
+
 import com.ggb.wanandroid.feature.setting.AppLanguage
 import com.ggb.wanandroid.feature.setting.SettingPreferencesKeys
 import com.ggb.wanandroid.feature.setting.settingDataStore
@@ -47,7 +48,7 @@ class App : Application(), SingletonImageLoader.Factory {
                 .build()
         )
 
-        BaseRepository.setLoginInterceptor(object : LoginInterceptor{
+        BaseRepository.setLoginInterceptor(object : LoginInterceptor {
             override fun onUnauthorized(errorCode: Int, errorMessage: String) {
                 // 未授权时，跳转到登录页面
                 NavControllerManager.navigate(Routes.ACCOUNT)

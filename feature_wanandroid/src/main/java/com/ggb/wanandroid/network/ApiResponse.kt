@@ -1,7 +1,7 @@
 package com.ggb.wanandroid.network
 
-import com.zfx.commonlib.network.response.IBaseResponse
-import com.zfx.commonlib.util.StringResourceHelper
+import com.ggb.commonlib.network.response.IBaseResponse
+import com.ggb.commonlib.util.StringResourceHelper
 import com.ggb.wanandroid.R
 
 class ApiResponse<T>(

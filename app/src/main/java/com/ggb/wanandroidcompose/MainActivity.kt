@@ -6,19 +6,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.blankj.utilcode.util.LogUtils
 import com.ggb.wanandroid.feature.setting.SettingViewModel
 import com.ggb.wanandroid.feature.setting.SettingViewModelFactory
 import com.ggb.wanandroid.ui.components.LandScapeScreen
 import com.ggb.wanandroid.ui.components.LanguageProvider
 import com.ggb.wanandroid.ui.components.PortraitScreen
 import com.ggb.wanandroid.ui.theme.WanAndroidComposeTheme
-import kotlin.compareTo
 
 class MainActivity : ComponentActivity(){
     
@@ -58,7 +55,7 @@ class MainActivity : ComponentActivity(){
                 theme = theme
             ){
 
-                if (screenWidth compareTo 600 || direction == Configuration.ORIENTATION_PORTRAIT){
+                if (screenWidth < 600 || direction == Configuration.ORIENTATION_PORTRAIT){
                     PortraitScreen(settingViewModel)
                 }else{
                     LandScapeScreen(settingViewModel)

@@ -2,8 +2,8 @@ package com.ggb.wanandroid.feature.program
 
 import androidx.lifecycle.viewModelScope
 import com.blankj.utilcode.util.ToastUtils
-import com.zfx.commonlib.base.viewmodel.BaseViewModel
-import com.zfx.commonlib.ext.collectResult
+import com.ggb.commonlib.base.viewmodel.BaseViewModel
+import com.ggb.commonlib.ext.collectResult
 import com.ggb.wanandroid.data.Article
 import com.ggb.wanandroid.data.WeChatAccount
 import kotlinx.coroutines.flow.MutableStateFlow

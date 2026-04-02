@@ -38,7 +38,7 @@ import com.blankj.utilcode.util.ToastUtils
 import com.ggb.wanandroid.R
 import com.ggb.wanandroid.feature.home.HomeViewModel
 import com.ggb.wanandroid.data.Article
-import com.zfx.commonlib.ext.compose.Banner
+import com.ggb.commonlib.ext.compose.Banner
 import com.ggb.wanandroid.navigation.Routes
 import com.ggb.wanandroid.ui.components.RefreshableLazyList
 import com.ggb.wanandroid.ui.components.ScrollableTopBar

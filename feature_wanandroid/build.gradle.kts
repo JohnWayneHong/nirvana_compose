@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -30,6 +31,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
+    buildFeatures {
+        compose = true
+    }
 }
 
 kotlin {
@@ -39,7 +43,7 @@ kotlin {
 }
 
 dependencies {
-    implementation("com.github.JohnWayneHong:ggb_compose_commonLib:V1.0.1")
+    implementation(libs.nirvana.lib)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

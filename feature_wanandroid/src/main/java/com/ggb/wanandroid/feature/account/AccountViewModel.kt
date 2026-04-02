@@ -4,9 +4,9 @@ import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.blankj.utilcode.util.ToastUtils
 import com.google.gson.Gson
-import com.zfx.commonlib.base.viewmodel.BaseViewModel
-import com.zfx.commonlib.ext.collectResult
-import com.zfx.commonlib.util.StringResourceHelper
+import com.ggb.commonlib.base.viewmodel.BaseViewModel
+import com.ggb.commonlib.ext.collectResult
+import com.ggb.commonlib.util.StringResourceHelper
 import com.ggb.wanandroid.R
 import com.ggb.wanandroid.data.AccountBody
 import com.ggb.wanandroid.feature.coin.data.CoinData

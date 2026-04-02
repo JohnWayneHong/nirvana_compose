@@ -36,7 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.zfx.commonlib.ext.compose.Center
+import com.ggb.commonlib.ext.compose.Center
 import com.ggb.wanandroid.R
 import com.ggb.wanandroid.data.KnowledgeItem
 import com.ggb.wanandroid.feature.knowledge.KnowledgeViewModel

@@ -1,9 +1,9 @@
 package com.ggb.wanandroid.feature.knowledge
 
 import com.blankj.utilcode.util.ToastUtils
-import com.zfx.commonlib.base.viewmodel.BaseViewModel
-import com.zfx.commonlib.ext.collectResult
-import com.zfx.commonlib.ext.collectResultWithLoading
+import com.ggb.commonlib.base.viewmodel.BaseViewModel
+import com.ggb.commonlib.ext.collectResult
+import com.ggb.commonlib.ext.collectResultWithLoading
 import com.ggb.wanandroid.data.Article
 import com.ggb.wanandroid.data.KnowledgeItem
 import kotlinx.coroutines.flow.MutableStateFlow

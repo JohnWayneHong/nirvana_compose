@@ -1,8 +1,8 @@
 package com.ggb.wanandroid.feature.account
 
-import com.zfx.commonlib.network.extension.getApiService
-import com.zfx.commonlib.network.repository.BaseRepository
-import com.zfx.commonlib.network.result.NetworkResult
+import com.ggb.commonlib.network.extension.getApiService
+import com.ggb.commonlib.network.repository.BaseRepository
+import com.ggb.commonlib.network.result.NetworkResult
 import com.ggb.wanandroid.data.AccountBody
 import com.ggb.wanandroid.data.User
 import com.ggb.wanandroid.feature.coin.data.CoinData

@@ -1,8 +1,8 @@
 package com.ggb.wanandroid.feature.square
 
 import com.blankj.utilcode.util.ToastUtils
-import com.zfx.commonlib.base.viewmodel.BaseViewModel
-import com.zfx.commonlib.ext.collectResult
+import com.ggb.commonlib.base.viewmodel.BaseViewModel
+import com.ggb.commonlib.ext.collectResult
 import com.ggb.wanandroid.data.Article
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

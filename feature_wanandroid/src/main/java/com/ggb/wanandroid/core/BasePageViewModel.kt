@@ -1,6 +1,6 @@
 package com.ggb.wanandroid.core
 
-import com.zfx.commonlib.base.viewmodel.BaseViewModel
+import com.ggb.commonlib.base.viewmodel.BaseViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

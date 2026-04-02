@@ -1,7 +1,7 @@
 package com.ggb.wanandroid.feature.coin
 
 import com.blankj.utilcode.util.ToastUtils
-import com.zfx.commonlib.ext.collectResult
+import com.ggb.commonlib.ext.collectResult
 import com.ggb.wanandroid.core.BasePageViewModel
 import com.ggb.wanandroid.feature.coin.data.CoinData
 import com.ggb.wanandroid.feature.coin.data.PersonalCoinData

@@ -32,8 +32,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.zfx.commonlib.ext.compose.Center
-import com.zfx.commonlib.ext.compose.WebViewComposable
+import com.ggb.commonlib.ext.compose.Center
+import com.ggb.commonlib.ext.compose.WebViewComposable
 import com.ggb.wanandroid.R
 
 

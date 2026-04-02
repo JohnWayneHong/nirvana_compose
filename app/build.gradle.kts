@@ -47,6 +47,7 @@ kotlin {
 
 dependencies {
     implementation(project(":feature_wanandroid"))
+    implementation(libs.nirvana.lib)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
