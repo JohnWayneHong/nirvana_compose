@@ -1,23 +1,19 @@
 plugins {
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
-    namespace = "com.ggb.wanandroidcompose"
+    namespace = "com.ggb.wanandroid.main"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.ggb.wanandroidcompose"
         minSdk = 24
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {
@@ -47,9 +43,7 @@ kotlin {
 
 dependencies {
     implementation(project(":feature_wanandroid"))
-    implementation(project(":feature_main"))
     implementation(libs.nirvana.lib)
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -58,20 +52,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network)
-//    implementation(libs.zfx.lib)
     implementation(libs.navigation.compose)
     implementation(libs.androidx.compose.material3.icons)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.datastore.preferences)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-
 }

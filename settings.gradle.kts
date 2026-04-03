@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 rootProject.name = "WanAndroidCompose"
 include(":app")
 include(":feature_wanandroid")
+include(":feature_main")

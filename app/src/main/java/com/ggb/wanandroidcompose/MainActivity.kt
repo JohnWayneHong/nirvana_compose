@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ggb.wanandroid.feature.setting.SettingViewModel
 import com.ggb.wanandroid.feature.setting.SettingViewModelFactory
+import com.ggb.wanandroid.main.MainEntryScreen
 import com.ggb.wanandroid.ui.components.LandScapeScreen
 import com.ggb.wanandroid.ui.components.LanguageProvider
 import com.ggb.wanandroid.ui.components.PortraitScreen
@@ -26,7 +27,11 @@ class MainActivity : ComponentActivity(){
         checkAndApplyLanguage()
         
         setContent {
-            MainScreen()
+//            MainScreen()
+//            MainEntryScreen {
+//
+//            }
+            MainAppEntryPoint()
         }
     }
 
@@ -35,6 +40,37 @@ class MainActivity : ComponentActivity(){
         // 如果语言和当前不一致，会在 LanguageProvider 中处理
         // 这里主要是确保 Configuration 已更新
     }
+
+    @Composable
+    private fun MainAppEntryPoint() {
+        val configuration = LocalConfiguration.current
+        val screenWidth = configuration.screenWidthDp
+        val direction = configuration.orientation
+        val context = LocalContext.current
+
+        val settingViewModel: SettingViewModel = viewModel(
+            factory = SettingViewModelFactory(context)
+        )
+        val currentLanguage by settingViewModel.curLanguage.collectAsState()
+        val theme by settingViewModel.curTheme.collectAsState()
+
+        // 1. 提供全局语言和主题环境
+        LanguageProvider(language = currentLanguage) {
+            WanAndroidComposeTheme(theme = theme) {
+
+                // 2. 启动带有 5 个大导航栏的主外壳
+                MainEntryScreen {
+                    // 3. 当点击主外壳的“玩安卓”时，渲染以下原有的业务代码
+                    if (screenWidth < 600 || direction == Configuration.ORIENTATION_PORTRAIT) {
+                        PortraitScreen(settingViewModel)
+                    } else {
+                        LandScapeScreen(settingViewModel)
+                    }
+                }
+            }
+        }
+    }
+
 
     @Composable
     private fun MainScreen() {
