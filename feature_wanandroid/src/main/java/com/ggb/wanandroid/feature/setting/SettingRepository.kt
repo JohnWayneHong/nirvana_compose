@@ -53,33 +53,24 @@ class SettingRepository(context: Context) {
     val languageFlow : Flow<AppLanguage> = dataStore.data
         .map { preferences ->
             val languageCode = preferences[SettingPreferencesKeys.LANGUAGE]
-            val language = if (languageCode == null || languageCode.isEmpty()) {
+            if (languageCode == null || languageCode.isEmpty()) {
                 AppLanguage.FLOW_SYSTEM
             } else {
                 AppLanguage.fromLocalCode(languageCode)
             }
-            language
         }
 
 
     suspend fun saveLanguage(language : AppLanguage){
-        // 保存到 DataStore
         dataStore.edit { preferences ->
             if (language == AppLanguage.FLOW_SYSTEM) {
-                // 如果是跟随系统，删除 key
                 preferences.remove(SettingPreferencesKeys.LANGUAGE)
             } else {
-                // 保存语言代码（如 "zh", "en"）
-                val languageCode = language.locale.language
-                preferences[SettingPreferencesKeys.LANGUAGE] = languageCode
+                // 关键修复：对于繁体中文，language.locale.language 只返回 "zh"
+                // 必须保存完整的标识，例如 "zh-TW" 或 "zh-rTW"
+                val code = if (language == AppLanguage.TRADITIONAL_CHINESE) "zh-TW" else language.locale.language
+                preferences[SettingPreferencesKeys.LANGUAGE] = code
             }
         }
-        
-        // 确保保存完成，并验证保存的值
-        val savedPreferences = dataStore.data.first()
-        val savedLanguageCode = savedPreferences[SettingPreferencesKeys.LANGUAGE]
     }
-
-
-
 }

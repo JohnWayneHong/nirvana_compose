@@ -20,48 +20,59 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ggb.wanandroid.main.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
-    // 缓存模拟数据，避免重组时重新创建列表导致卡顿
+fun HomeScreen(onSearchClick: () -> Unit = {}) {
     val articleList = remember { getMockHomeData() }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    // 优化后的搜索框：使用 Surface 替代简单的 Row 装饰，增加层次感
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 16.dp)
-                            .height(40.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .clickable { /* TODO: Search */ }
-                            .padding(horizontal = 12.dp)
+                            .padding(end = 12.dp)
+                            .height(42.dp)
+                            .clickable { onSearchClick() },
+                        shape = RoundedCornerShape(21.dp),
+                        color = Color.White,
+                        tonalElevation = 2.dp,
+                        shadowElevation = 1.dp
                     ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "搜索关键词...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                stringResource(R.string.home_search_placeholder),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 },
                 actions = {
                     IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.NotificationsNone, contentDescription = "通知")
+                        Icon(
+                            Icons.Default.NotificationsNone, 
+                            contentDescription = stringResource(R.string.home_notification),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -78,20 +89,21 @@ fun HomeScreen() {
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             item(key = "banner") { HomeBanner() }
-
             item(key = "quick_actions") { HomeQuickActions() }
-
-            item(key = "featured_columns_header") { SectionHeader("精选专栏", "查看全部") }
-
+            item(key = "featured_columns_header") { 
+                SectionHeader(
+                    stringResource(R.string.home_featured_columns), 
+                    stringResource(R.string.home_view_all)
+                ) 
+            }
             item(key = "featured_columns_row") { FeaturedColumns() }
-
-            item(key = "recent_updates_header") { SectionHeader("最近更新", "") }
-
-            // 传入缓存的列表
-            items(
-                items = articleList,
-                key = { it.id }
-            ) { item ->
+            item(key = "recent_updates_header") { 
+                SectionHeader(
+                    stringResource(R.string.home_recent_updates), 
+                    ""
+                ) 
+            }
+            items(items = articleList, key = { it.id }) { item ->
                 HomeArticleItem(item)
             }
         }
@@ -106,7 +118,7 @@ private fun HomeBanner() {
             .padding(16.dp)
             .height(160.dp),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(
             modifier = Modifier
@@ -127,7 +139,7 @@ private fun HomeBanner() {
                     shape = RoundedCornerShape(4.dp)
                 ) {
                     Text(
-                        "HOT",
+                        stringResource(R.string.home_hot_tag),
                         color = Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -148,14 +160,12 @@ private fun HomeBanner() {
 
 @Composable
 private fun HomeQuickActions() {
-    val actions = remember {
-        listOf(
-            ActionItem(Icons.AutoMirrored.Filled.LibraryBooks, "教程", Color(0xFF4CAF50)),
-            ActionItem(Icons.Default.Code, "项目", Color(0xFF2196F3)),
-            ActionItem(Icons.Default.QuestionAnswer, "问答", Color(0xFFFF9800)),
-            ActionItem(Icons.Default.EmojiEvents, "竞赛", Color(0xFFE91E63))
-        )
-    }
+    val actions = listOf(
+        ActionItem(Icons.AutoMirrored.Filled.LibraryBooks, stringResource(R.string.home_action_tutorial), Color(0xFF4CAF50)),
+        ActionItem(Icons.Default.Code, stringResource(R.string.home_action_project), Color(0xFF2196F3)),
+        ActionItem(Icons.Default.QuestionAnswer, stringResource(R.string.home_action_qa), Color(0xFFFF9800)),
+        ActionItem(Icons.Default.EmojiEvents, stringResource(R.string.home_action_contest), Color(0xFFE91E63))
+    )
 
     Row(
         modifier = Modifier
@@ -204,14 +214,18 @@ private fun SectionHeader(title: String, actionText: String) {
 
 @Composable
 private fun FeaturedColumns() {
-    val columns = remember { listOf("Compose实战", "KMP跨平台", "架构组件", "性能调优") }
+    val columns = listOf(
+        stringResource(R.string.home_column_compose),
+        stringResource(R.string.home_column_kmp),
+        stringResource(R.string.home_column_arch),
+        stringResource(R.string.home_column_perf)
+    )
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(columns) { column ->
             Surface(
-                // 使用比背景稍亮的颜色
                 color = if (isSystemInDarkTheme()) Color(0xFF373737) else Color(0xFFF5F7F9),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.width(130.dp).clickable { }
@@ -220,7 +234,11 @@ private fun FeaturedColumns() {
                     Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(column, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("12 篇文章", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(R.string.home_article_count, 12), 
+                        fontSize = 11.sp, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -229,7 +247,6 @@ private fun FeaturedColumns() {
 
 @Composable
 private fun HomeArticleItem(item: HomeData) {
-    // 显式指定颜色：如果是浅色模式，使用纯白；深色模式使用较浅的灰色
     val cardBgColor = if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color.White
 
     Surface(

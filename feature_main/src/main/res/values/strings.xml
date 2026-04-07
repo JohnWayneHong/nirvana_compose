@@ -1,0 +1,64 @@
+<resources>
+    <string name="main_nav_home">首页</string>
+    <string name="main_nav_discover">发现</string>
+    <string name="main_nav_ai_chat">AI对话</string>
+    <string name="main_nav_message">消息</string>
+    <string name="main_nav_me">我的</string>
+
+    <!-- MeScreen -->
+    <string name="me_my_achievement">我的成就</string>
+    <string name="me_my_favorites">我的收藏</string>
+    <string name="me_my_articles">我的文章</string>
+    <string name="me_browse_history">浏览历史</string>
+    <string name="me_system_service">系统服务</string>
+    <string name="me_appearance_setting">外观设置</string>
+    <string name="me_language_setting">多语言设置</string>
+    <string name="me_about_project">关于项目</string>
+    <string name="me_logout">退出当前账号</string>
+    <string name="me_click_login">点击登录</string>
+    <string name="me_unlock_more">解锁更多精彩内容</string>
+    <string name="me_my_coin">我的积分</string>
+    <string name="me_following">关注</string>
+    <string name="me_level">等级</string>
+
+    <!-- HomeScreen -->
+    <string name="home_search_placeholder">搜索关键词...</string>
+    <string name="home_featured_columns">精选专栏</string>
+    <string name="home_view_all">查看全部</string>
+    <string name="home_recent_updates">最近更新</string>
+    <string name="home_action_tutorial">教程</string>
+    <string name="home_action_project">项目</string>
+    <string name="home_action_qa">问答</string>
+    <string name="home_action_contest">竞赛</string>
+    <string name="home_article_count">%1$d 篇文章</string>
+    <string name="home_notification">通知</string>
+    <string name="home_hot_tag">HOT</string>
+    <string name="home_column_compose">Compose实战</string>
+    <string name="home_column_kmp">KMP跨平台</string>
+    <string name="home_column_arch">架构组件</string>
+    <string name="home_column_perf">性能调优</string>
+
+    <!-- DiscoverScreen -->
+    <string name="discover_title">发现</string>
+    <string name="discover_search">搜索</string>
+    <string name="discover_scan">扫码</string>
+    <string name="discover_wanandroid">玩安卓</string>
+    <string name="discover_toolbox">工具箱</string>
+    <string name="discover_ranking">排行榜</string>
+    <string name="discover_daily_question">每日一问</string>
+    <string name="discover_recommend_for_you">为你推荐</string>
+    <string name="discover_promotion_title">2024 年度开发者大会</string>
+    <string name="discover_promotion_desc">查看议程安排与精彩回放 ></string>
+
+    <!-- AIChatScreen -->
+    <string name="ai_chat_title">牛蛙呐 AI</string>
+    <string name="ai_chat_input_placeholder">输入消息...</string>
+    <string name="ai_chat_send">发送</string>
+
+    <!-- Search -->
+    <string name="search_history">搜索历史</string>
+    <string name="search_hot">热门搜索</string>
+    <string name="search_cancel">取消</string>
+
+    <string name="press_again_to_exit">再按一次退出应用</string>
+</resources>

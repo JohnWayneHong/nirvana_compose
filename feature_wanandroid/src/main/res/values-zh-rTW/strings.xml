@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">玩安卓</string>
+    <string name="nav_home">首頁</string>
+    <string name="settings_language">語言設置</string>
+    <string name="settings_language_zh">簡體中文</string>
+    <string name="settings_language_zh_tw">繁體中文</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_language_ja">日本語</string>
+    <string name="settings_language_follow_system">跟隨系統</string>
+    <string name="drawer_my_favorites">我的收藏</string>
+    <string name="nav_wechat">公眾號</string>
+</resources>

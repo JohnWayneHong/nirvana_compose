@@ -1,0 +1,57 @@
+<resources>
+    <string name="main_nav_home">ホーム</string>
+    <string name="main_nav_discover">発見</string>
+    <string name="main_nav_ai_chat">AI対話</string>
+    <string name="main_nav_message">メッセージ</string>
+    <string name="main_nav_me">マイページ</string>
+
+    <!-- MeScreen -->
+    <string name="me_my_achievement">私の実績</string>
+    <string name="me_my_favorites">お気に入り</string>
+    <string name="me_my_articles">投稿した記事</string>
+    <string name="me_browse_history">閲覧履歴</string>
+    <string name="me_system_service">システムサービス</string>
+    <string name="me_appearance_setting">外観設定</string>
+    <string name="me_language_setting">多语言設定</string>
+    <string name="me_about_project">プロジェクトについて</string>
+    <string name="me_logout">ログアウト</string>
+    <string name="me_click_login">ログインしてください</string>
+    <string name="me_unlock_more">さらに多くのコンテンツをアンロック</string>
+    <string name="me_my_coin">マイポイント</string>
+    <string name="me_following">フォロー</string>
+    <string name="me_level">レベル</string>
+
+    <!-- HomeScreen -->
+    <string name="home_search_placeholder">キーワードを検索…</string>
+    <string name="home_featured_columns">おすすめのコラム</string>
+    <string name="home_view_all">すべて見る</string>
+    <string name="home_recent_updates">最近の更新</string>
+    <string name="home_action_tutorial">チュートリアル</string>
+    <string name="home_action_project">プロジェクト</string>
+    <string name="home_action_qa">Q&amp;A</string>
+    <string name="home_action_contest">コンテスト</string>
+    <string name="home_article_count">%1$d 記事</string>
+    <string name="home_notification">通知</string>
+    <string name="home_hot_tag">HOT</string>
+    <string name="home_column_compose">Compose実戦</string>
+    <string name="home_column_kmp">KMPクロスプラットフォーム</string>
+    <string name="home_column_arch">アーキテクチャコンポーネント</string>
+    <string name="home_column_perf">パフォーマンスチューニング</string>
+
+    <!-- DiscoverScreen -->
+    <string name="discover_title">発見</string>
+    <string name="discover_search">検索</string>
+    <string name="discover_scan">スキャン</string>
+    <string name="discover_wanandroid">玩安卓</string>
+    <string name="discover_toolbox">ツールボックス</string>
+    <string name="discover_ranking">ランキング</string>
+    <string name="discover_daily_question">今日の一問</string>
+    <string name="discover_recommend_for_you">あなたへの推薦</string>
+    <string name="discover_promotion_title">2024年度開発者会議</string>
+    <string name="discover_promotion_desc">アジェンダとアーカイブを見る ></string>
+
+    <!-- AIChatScreen -->
+    <string name="ai_chat_title">Nirvana AI</string>
+    <string name="ai_chat_input_placeholder">メッセージを入力…</string>
+    <string name="ai_chat_send">送信</string>
+</resources>

@@ -18,6 +18,10 @@ enum class AppLanguage(
         locale = Locale("zh", "CN"),
         displayNameRes = R.string.settings_language_zh
     ),
+    TRADITIONAL_CHINESE(
+        locale = Locale("zh", "TW"),
+        displayNameRes = R.string.settings_language_zh_tw
+    ),
     ENGLISH(
         locale = Locale("en", "US"),
         displayNameRes = R.string.settings_language_en
@@ -25,11 +29,8 @@ enum class AppLanguage(
     JAPAN(
         locale = Locale("ja", "JP"),
         displayNameRes = R.string.settings_language_ja
-    ),
-    KOREAN(
-        locale = Locale("ko", "KR"),
-        displayNameRes = R.string.settings_language_ko
     );
+
     companion object{
 
         fun fromLocalCode(code : String) : AppLanguage{
@@ -37,11 +38,11 @@ enum class AppLanguage(
 
                 "zh" -> CHINESE
 
+                "zh-TW", "zh-HK", "zh-rTW" -> TRADITIONAL_CHINESE
+
                 "en" -> ENGLISH
 
                 "ja" -> JAPAN
-
-                "ko" -> KOREAN
 
                 else -> { FLOW_SYSTEM }
             }
@@ -75,9 +76,9 @@ object LanguageResources{
 
     val languageResourceMap = mapOf(
         "zh" to "values-zh",
+        "zh-TW" to "values-zh-rTW",
         "en" to "values-en",
-        "ja" to "values-ja",
-        "ko" to "values-ko"
+        "ja" to "values-ja"
     )
 
     fun getResourceDir(language : String) : String{

@@ -3,10 +3,14 @@
     
     <!-- Navigation Bar -->
     <string name="nav_home">Home</string>
+    <string name="nav_discover">Discover</string>
+    <string name="nav_ai_chat">AI Chat</string>
+    <string name="nav_message">Message</string>
+    <string name="nav_me">Me</string>
     <string name="nav_square">Square</string>
     <string name="nav_wechat">WeChat</string>
     <string name="nav_knowledge">Knowledge</string>
-    <string name="nav_program">项目</string>
+    <string name="nav_program">Program</string>
     
     <!-- Page Titles -->
     <string name="title_wan_android">WanAndroid</string>
@@ -122,11 +126,11 @@
     <string name="about_us_title">About Us</string>
     <string name="about_us_back">Back</string>
     <string name="about_us_app_name">WanAndroid Compose</string>
-    <string name="about_us_guide_title"># Compose Collapsible Toolbar Guide\n\n## Overview\n\nThis guide compares the `CoordinatorLayout` + `AppBarLayout` + `CollapsingToolbarLayout` combination in the View system with the corresponding implementation in Compose.\n\n## View System vs Compose Components\n\n| View System | Compose | Description |\n| `CoordinatorLayout` | `Modifier.nestedScroll()` | Nested scroll behavior coordinator |\n| `AppBarLayout` | `TopAppBar` | Standard Toolbar |\n| `CollapsingToolbarLayout` | `LargeTopAppBar` / `MediumTopAppBar` | Collapsible Toolbar |\n\n## View System Implementation\n</string>
-    <string name="about_us_github">Open source code: https://github.com/zhufeixiang/WanAndroidCompose</string>
+    <string name="about_us_guide_title">Project Guide</string>
+    <string name="about_us_github">GitHub</string>
     
     <!-- Home -->
-    <string name="home_banner_message">We added a new common navigation Tab~</string>
+    <string name="home_banner_message">Banner</string>
     
     <!-- Link Page -->
     <string name="link_back_button">Back Button</string>
@@ -141,4 +145,3 @@
     <string name="coin_title">Coin List</string>
     <string name="coin_rank_title">Coin Rank</string>
 </resources>
-

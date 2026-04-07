@@ -1,7 +1,11 @@
 package com.ggb.wanandroid.main
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -9,16 +13,15 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,6 +29,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,12 +38,13 @@ import com.ggb.wanandroid.main.update.UpdateState
 import com.ggb.wanandroid.main.update.UpdateViewModel
 import com.ggb.wanandroid.main.update.ui.UpdateDialog
 
-sealed class MainTab(val route: String, val label: String, val icon: ImageVector) {
-    object Home : MainTab("home", "首页", Icons.Default.Home)
-    object Discover : MainTab("discover", "发现", Icons.Default.Explore)
-    object AIChat : MainTab("ai_chat", "AI对话", Icons.Default.AutoAwesome)
-    object Message : MainTab("message", "消息", Icons.Default.Message)
-    object Me : MainTab("me", "我的", Icons.Default.Person)
+sealed class MainTab(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
+    object Home : MainTab("home", R.string.main_nav_home, Icons.Default.Home)
+    object Discover : MainTab("discover", R.string.main_nav_discover, Icons.Default.Explore)
+    object AIChat : MainTab("ai_chat", R.string.main_nav_ai_chat, Icons.Default.AutoAwesome)
+    object Message : MainTab("message", R.string.main_nav_message, Icons.AutoMirrored.Filled.Message)
+    object Me : MainTab("me", R.string.main_nav_me, Icons.Default.Person)
+    object Search : MainTab("search", R.string.discover_search, Icons.Default.Person)
 }
 
 @Composable
@@ -51,18 +56,40 @@ fun MainEntryScreen(
     val updateState by updateViewModel.updateState.collectAsState()
 
     var selectedTab by remember { mutableStateOf<MainTab>(MainTab.Home) }
+    var previousTab by remember { mutableStateOf<MainTab>(MainTab.Home) }
     var showWanAndroidInDiscover by remember { mutableStateOf(false) }
 
-    // 控制底部导航栏显示隐藏的状态
     var isBottomBarVisible by remember { mutableStateOf(true) }
+    var lastBackPressTime by remember { mutableLongStateOf(0L) }
+    
+    val exitMessage = stringResource(R.string.press_again_to_exit)
 
-    // 使用 NestedScrollConnection 来监听滚动方向，实现自动隐藏/显示
+    // 处理返回键逻辑
+    BackHandler {
+        if (selectedTab == MainTab.Search) {
+            // 如果在搜索页，返回到之前的页面
+            selectedTab = previousTab
+        } else if (selectedTab != MainTab.Home) {
+            // 如果不在首页，先返回首页
+            selectedTab = MainTab.Home
+        } else {
+            // 在首页，双击退出逻辑
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastBackPressTime < 2000) {
+                (context as? Activity)?.finish()
+            } else {
+                lastBackPressTime = currentTime
+                Toast.makeText(context, exitMessage, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -15) { // 向下滑动查看内容，隐藏导航栏
+                if (available.y < -15) {
                     isBottomBarVisible = false
-                } else if (available.y > 15) { // 向上滑动查看历史，显示导航栏
+                } else if (available.y > 15) {
                     isBottomBarVisible = true
                 }
                 return Offset.Zero
@@ -81,60 +108,61 @@ fun MainEntryScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(nestedScrollConnection),
         bottomBar = {
-            AnimatedVisibility(
-                visible = isBottomBarVisible,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
-            ) {
-                val isDark = isSystemInDarkTheme()
-                // 深色模式使用更有质感的深蓝灰，浅色模式使用纯白
-                val navBarBgColor = if (isDark) Color(0xFF1E2129) else Color.White
-                
-                Surface(
-                    color = navBarBgColor,
-                    // 顶部大圆角，底部撑满屏幕，解决“悬浮留白”的问题
-                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                    shadowElevation = 20.dp,
-                    tonalElevation = 3.dp,
-                    modifier = Modifier.fillMaxWidth()
+            if (selectedTab != MainTab.Search) {
+                AnimatedVisibility(
+                    visible = isBottomBarVisible,
+                    enter = slideInVertically(initialOffsetY = { it }),
+                    exit = slideOutVertically(targetOffsetY = { it })
                 ) {
-                    NavigationBar(
-                        containerColor = Color.Transparent,
-                        tonalElevation = 0.dp,
-                        modifier = Modifier
-                            .navigationBarsPadding() // 自动适配系统手势/虚拟按键高度，解决偏顶问题
-                            .height(80.dp) // 增加高度，使内容垂直居中且不局促
+                    val isDark = isSystemInDarkTheme()
+                    val navBarBgColor = if (isDark) Color(0xFF1E2129) else Color.White
+                    
+                    Surface(
+                        color = navBarBgColor,
+                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                        shadowElevation = 20.dp,
+                        tonalElevation = 3.dp,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        tabs.forEach { tab ->
-                            val isSelected = selectedTab == tab
-                            val activeColor = if (tab == MainTab.AIChat) Color(0xFF00B4D8) else MaterialTheme.colorScheme.primary
-                            
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = { 
-                                    selectedTab = tab 
-                                    if (tab != MainTab.Discover) showWanAndroidInDiscover = false
-                                },
-                                icon = { 
-                                    Icon(
-                                        imageVector = tab.icon, 
-                                        contentDescription = tab.label,
-                                        tint = if (isSelected) activeColor else Color.Gray.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(24.dp)
-                                    ) 
-                                },
-                                label = { 
-                                    Text(
-                                        text = tab.label,
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) activeColor else Color.Gray
-                                    ) 
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = activeColor.copy(alpha = 0.12f)
+                        NavigationBar(
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier
+                                .navigationBarsPadding()
+                                .height(80.dp)
+                        ) {
+                            tabs.forEach { tab ->
+                                val isSelected = selectedTab == tab
+                                val activeColor = if (tab == MainTab.AIChat) Color(0xFF00B4D8) else MaterialTheme.colorScheme.primary
+                                
+                                NavigationBarItem(
+                                    selected = isSelected,
+                                    onClick = { 
+                                        previousTab = selectedTab
+                                        selectedTab = tab 
+                                        if (tab != MainTab.Discover) showWanAndroidInDiscover = false
+                                    },
+                                    icon = { 
+                                        Icon(
+                                            imageVector = tab.icon, 
+                                            contentDescription = stringResource(tab.labelRes),
+                                            tint = if (isSelected) activeColor else Color.Gray.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(24.dp)
+                                        ) 
+                                    },
+                                    label = { 
+                                        Text(
+                                            text = stringResource(tab.labelRes),
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) activeColor else Color.Gray
+                                        ) 
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = activeColor.copy(alpha = 0.12f)
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }
@@ -143,10 +171,13 @@ fun MainEntryScreen(
     ) { paddingValues ->
         Box(modifier = Modifier
             .fillMaxSize()
-            .padding(top = paddingValues.calculateTopPadding())
+            .padding(top = if (selectedTab == MainTab.Search) 0.dp else paddingValues.calculateTopPadding())
         ) {
             when (selectedTab) {
-                MainTab.Home -> HomeScreen()
+                MainTab.Home -> HomeScreen(onSearchClick = { 
+                    previousTab = selectedTab
+                    selectedTab = MainTab.Search 
+                })
                 MainTab.Discover -> {
                     if (showWanAndroidInDiscover) {
                         onNavigateToWanAndroid()
@@ -156,16 +187,16 @@ fun MainEntryScreen(
                 }
                 MainTab.AIChat -> AIChatScreen()
                 MainTab.Me -> MeScreen()
+                MainTab.Search -> MainSearchScreen(onBack = { selectedTab = previousTab })
                 else -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("${selectedTab.label} 模块开发中...")
+                        Text("${stringResource(selectedTab.labelRes)} ...")
                     }
                 }
             }
         }
     }
 
-    // 更新弹窗
     when (val state = updateState) {
         is UpdateState.HasUpdate -> {
             UpdateDialog(

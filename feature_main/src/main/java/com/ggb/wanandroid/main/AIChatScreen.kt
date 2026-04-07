@@ -15,9 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ggb.wanandroid.main.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +57,7 @@ fun AIChatScreen() {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "牛蛙呐 AI",
+                        stringResource(R.string.ai_chat_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -100,7 +102,7 @@ fun AIChatScreen() {
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(24.dp)),
-                    placeholder = { Text("输入消息...", color = Color.Gray) },
+                    placeholder = { Text(stringResource(R.string.ai_chat_input_placeholder), color = Color.Gray) },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color(0xFF0D1B2A),
                         unfocusedContainerColor = Color(0xFF0D1B2A),
@@ -130,7 +132,7 @@ fun AIChatScreen() {
                             shape = RoundedCornerShape(24.dp)
                         )
                 ) {
-                    Icon(Icons.Default.Send, contentDescription = "发送", tint = Color.White)
+                    Icon(Icons.Default.Send, contentDescription = stringResource(R.string.ai_chat_send), tint = Color.White)
                 }
             }
         }

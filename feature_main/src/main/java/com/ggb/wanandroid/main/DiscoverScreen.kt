@@ -17,10 +17,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ggb.wanandroid.main.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,13 +30,13 @@ fun DiscoverScreen(onEnterWanAndroid: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("发现", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.discover_title), fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.Search, contentDescription = "搜索")
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.discover_search))
                     }
                     IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.QrCodeScanner, contentDescription = "扫码")
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.discover_scan))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -57,10 +59,10 @@ fun DiscoverScreen(onEnterWanAndroid: () -> Unit) {
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    ShortcutItem(Icons.Default.Android, "玩安卓", Color(0xFF4CAF50)) { onEnterWanAndroid() }
-                    ShortcutItem(Icons.Default.Build, "工具箱", Color(0xFF2196F3)) { }
-                    ShortcutItem(Icons.Default.EmojiEvents, "排行榜", Color(0xFFFF9800)) { }
-                    ShortcutItem(Icons.Default.Lightbulb, "每日一问", Color(0xFF9C27B0)) { }
+                    ShortcutItem(Icons.Default.Android, stringResource(R.string.discover_wanandroid), Color(0xFF4CAF50)) { onEnterWanAndroid() }
+                    ShortcutItem(Icons.Default.Build, stringResource(R.string.discover_toolbox), Color(0xFF2196F3)) { }
+                    ShortcutItem(Icons.Default.EmojiEvents, stringResource(R.string.discover_ranking), Color(0xFFFF9800)) { }
+                    ShortcutItem(Icons.Default.Lightbulb, stringResource(R.string.discover_daily_question), Color(0xFF9C27B0)) { }
                 }
             }
 
@@ -72,7 +74,7 @@ fun DiscoverScreen(onEnterWanAndroid: () -> Unit) {
             // 3. 发现流标题
             item {
                 Text(
-                    "为你推荐",
+                    stringResource(R.string.discover_recommend_for_you),
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
@@ -133,8 +135,8 @@ private fun PromotionCard() {
             contentAlignment = Alignment.CenterStart
         ) {
             Column {
-                Text("2024 年度开发者大会", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("查看议程安排与精彩回放 >", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                Text(stringResource(R.string.discover_promotion_title), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(stringResource(R.string.discover_promotion_desc), color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
             }
         }
     }

@@ -1,0 +1,61 @@
+<resources>
+    <string name="main_nav_home">Home</string>
+    <string name="main_nav_discover">Discover</string>
+    <string name="main_nav_ai_chat">AI Chat</string>
+    <string name="main_nav_message">Message</string>
+    <string name="main_nav_me">Me</string>
+
+    <!-- MeScreen -->
+    <string name="me_my_achievement">My Achievement</string>
+    <string name="me_my_favorites">My Favorites</string>
+    <string name="me_my_articles">My Articles</string>
+    <string name="me_browse_history">Browse History</string>
+    <string name="me_system_service">System Service</string>
+    <string name="me_appearance_setting">Appearance</string>
+    <string name="me_language_setting">Language</string>
+    <string name="me_about_project">About Project</string>
+    <string name="me_logout">Logout</string>
+    <string name="me_click_login">Click to Login</string>
+    <string name="me_unlock_more">Unlock more content</string>
+    <string name="me_my_coin">My Coins</string>
+    <string name="me_following">Following</string>
+    <string name="me_level">Level</string>
+
+    <!-- HomeScreen -->
+    <string name="home_search_placeholder">Search keywords…</string>
+    <string name="home_featured_columns">Featured Columns</string>
+    <string name="home_view_all">View All</string>
+    <string name="home_recent_updates">Recent Updates</string>
+    <string name="home_action_tutorial">Tutorial</string>
+    <string name="home_action_project">Project</string>
+    <string name="home_action_qa">Q&amp;A</string>
+    <string name="home_action_contest">Contest</string>
+    <string name="home_article_count">%1$d articles</string>
+    <string name="home_notification">Notification</string>
+    <string name="home_hot_tag">HOT</string>
+    <string name="home_column_compose">Compose Practice</string>
+    <string name="home_column_kmp">KMP Multiplatform</string>
+    <string name="home_column_arch">Arch Components</string>
+    <string name="home_column_perf">Performance</string>
+
+    <!-- DiscoverScreen -->
+    <string name="discover_title">Discover</string>
+    <string name="discover_search">Search</string>
+    <string name="discover_scan">Scan</string>
+    <string name="discover_wanandroid">WanAndroid</string>
+    <string name="discover_toolbox">Toolbox</string>
+    <string name="discover_ranking">Ranking</string>
+    <string name="discover_daily_question">Daily Q&amp;A</string>
+    <string name="discover_recommend_for_you">Recommended</string>
+    <string name="discover_promotion_title">2024 Developer Conference</string>
+    <string name="discover_promotion_desc">View schedule and replays ></string>
+
+    <!-- AIChatScreen -->
+    <string name="ai_chat_title">Nirvana AI</string>
+    <string name="ai_chat_input_placeholder">Type a message…</string>
+    <string name="ai_chat_send">Send</string>
+
+    <!-- Search -->
+    <string name="search_history">Search History</string>
+    <string name="search_hot">Hot Search</string>
+</resources>
