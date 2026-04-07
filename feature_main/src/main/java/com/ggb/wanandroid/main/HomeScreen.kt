@@ -2,11 +2,14 @@ package com.ggb.wanandroid.main
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,12 +22,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ggb.wanandroid.main.R
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +41,6 @@ fun HomeScreen(onSearchClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 title = {
-                    // 优化后的搜索框：使用 Surface 替代简单的 Row 装饰，增加层次感
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -112,46 +117,131 @@ fun HomeScreen(onSearchClick: () -> Unit = {}) {
 
 @Composable
 private fun HomeBanner() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .height(160.dp),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(Color(0xFF3A7BD5), Color(0xFF00D2FF))
-                    )
-                )
-        ) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp)
-            ) {
-                Surface(
-                    color = Color.White.copy(alpha = 0.25f),
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-                    Text(
-                        stringResource(R.string.home_hot_tag),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+    val banners = remember { getMockBannerData() }
+    val virtualCount = 5000
+    val initialPage = virtualCount / 2 - (virtualCount / 2 % banners.size)
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { virtualCount })
+
+    // 监听拖拽状态：true表示用户手指正在屏幕上滑动
+    val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
+
+    // 逻辑：当 isDragged 改变时重启协程。
+    // 如果用户停止拖拽 (!isDragged)，则进入 while 循环执行 3s 计时的自动轮播。
+    // 如果用户再次开始拖拽，LaunchedEffect 会因 key(isDragged) 变化而取消旧协程，从而停止计时和跳转。
+    LaunchedEffect(isDragged) {
+        if (!isDragged) {
+            while (true) {
+                delay(3000)
+                // 额外检查：确保在 delay 结束准备跳转时，页面没有处于其他滚动中
+                if (!pagerState.isScrollInProgress) {
+                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
                 }
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    "Jetpack Compose 性能优化实战技巧",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+            }
+        }
+    }
+
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 36.dp), 
+            beyondViewportPageCount = 5, 
+            pageSpacing = 0.dp 
+        ) { page ->
+            val bannerIndex = page % banners.size
+            val banner = banners[bannerIndex]
+            
+            val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+            
+            Card(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(pageOffset)
+                    .graphicsLayer {
+                        transformOrigin = TransformOrigin(0f, 0.5f)
+                        
+                        val scalingStep = 0.05f
+                        val stepOffset = 6.dp.toPx()
+                        
+                        if (pageOffset <= 0) {
+                            // 当前及后续页面
+                            val lerpScale = 1f + (pageOffset * scalingStep).coerceIn(-0.25f, 0f)
+                            scaleX = lerpScale
+                            scaleY = lerpScale
+                            
+                            // 关键位移公式修正：(1 + pageOffset) 将后续卡片拉回，- lerpScale 补偿左缩放宽度损失，- pageOffset * stepOffset 产生递进间距
+                            translationX = (1f + pageOffset - lerpScale) * size.width - pageOffset * stepOffset
+                            
+                            alpha = (pageOffset + banners.size).coerceIn(0f, 1f)
+                        } else {
+                            // 滑过的页面
+                            alpha = (1f - pageOffset).coerceIn(0f, 1f)
+                            translationX = 0f
+                        }
+                    },
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = if (pageOffset > -0.5f) 4.dp else 2.dp
+                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(brush = Brush.linearGradient(colors = banner.colors))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(16.dp)
+                    ) {
+                        Surface(
+                            color = Color.White.copy(alpha = 0.25f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = banner.tag,
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = banner.title,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
+        }
+
+        Row(
+            Modifier
+                .padding(top = 12.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            repeat(banners.size) { iteration ->
+                val isSelected = (pagerState.currentPage % banners.size) == iteration
+                val color = if (isSelected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                
+                val width = if (isSelected) 12.dp else 6.dp
+                
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp)
+                        .clip(CircleShape)
+                        .background(color)
+                        .size(width = width, height = 6.dp)
                 )
             }
         }
@@ -323,10 +413,25 @@ data class HomeData(
     val hasImage: Boolean = false
 )
 
+data class BannerData(
+    val id: Int,
+    val title: String,
+    val tag: String,
+    val colors: List<Color>
+)
+
 private fun getMockHomeData() = listOf(
     HomeData(1, "Compose 自定义布局详解：从测量到放置", "鸿洋", "20分钟前", listOf("Compose", "自定义")),
     HomeData(2, "Android 15 适配指南：开发者需要关注的重大变更", "Google", "1小时前", listOf("Android 15"), true),
     HomeData(3, "Kotlin 2.0 K2 编译器正式版发布", "JetBrains", "3小时前", listOf("Kotlin")),
-    HomeData(4, "使用 Room 和 Hilt 构建现代架构", "郭霖", "昨天", listOf("架构", "数据库"), true),
+    HomeData(4, "使用 Room 和 Hilt 构建 modern 架构", "郭霖", "昨天", listOf("架构", "数据库"), true),
     HomeData(5, "如何在 iOS 上运行 Compose 代码", "Nirvana", "2天前", listOf("KMP", "iOS"))
+)
+
+private fun getMockBannerData() = listOf(
+    BannerData(1, "Jetpack Compose 性能优化实战技巧", "热门", listOf(Color(0xFF3A7BD5), Color(0xFF00D2FF))),
+    BannerData(2, "Kotlin Coroutines 深度解析与最佳实践", "进阶", listOf(Color(0xFF6A11CB), Color(0xFF2575FC))),
+    BannerData(3, "Android 15 适配全攻略：开发者必看", "最新", listOf(Color(0xFFFF5F6D), Color(0xFFFFC371))),
+    BannerData(4, "Material Design 3 在 Compose 中的深度应用", "设计", listOf(Color(0xFF11998E), Color(0xFF38EF7D))),
+    BannerData(5, "打造流畅所在的 KMP 跨平台移动端应用", "前沿", listOf(Color(0xFFEB3349), Color(0xFFF45C43)))
 )

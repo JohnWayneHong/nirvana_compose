@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -19,11 +20,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ggb.wanandroid.main.R
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AIChatScreen() {
+fun AIChatScreen(
+    contentPadding: PaddingValues = PaddingValues(0.dp)
+) {
     var inputText by remember { mutableStateOf("") }
     val messages = remember {
         mutableStateListOf(
@@ -32,10 +35,15 @@ fun AIChatScreen() {
             ChatMessage("Kotlin Multiplatform (KMP) 现在已经进入稳定阶段了！它允许你在 Android、iOS、Web 和桌面端之间共享业务逻辑代码。目前的生态系统非常活跃，很多主流库如 Ktor, Room, SQLDelight 等都已经支持 KMP。", false)
         )
     }
+    
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            // 关键：处理底部导航栏的遮挡。我们直接在 Column 底部应用 padding。
+            .padding(bottom = contentPadding.calculateBottomPadding())
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -71,6 +79,7 @@ fun AIChatScreen() {
 
         // Chat History
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -85,15 +94,16 @@ fun AIChatScreen() {
 
         // Input Area
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding(), // 键盘弹出时，输入框自动上移
             color = Color(0xFF1B263B),
             tonalElevation = 8.dp
         ) {
             Row(
                 modifier = Modifier
-                    .padding(16.dp)
-                    .navigationBarsPadding()
-                    .imePadding(),
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .navigationBarsPadding(), // 系统导航栏适配
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextField(
@@ -119,6 +129,12 @@ fun AIChatScreen() {
                         if (inputText.isNotBlank()) {
                             messages.add(ChatMessage(inputText, true))
                             inputText = ""
+                            coroutineScope.launch {
+                                // 发送后自动滚动到最新消息
+                                if (messages.isNotEmpty()) {
+                                    listState.animateScrollToItem(messages.size - 1)
+                                }
+                            }
                             // Simulate AI response
                             messages.add(ChatMessage("收到！正在为您处理信息...", false))
                         }

@@ -87,6 +87,12 @@ fun MainEntryScreen(
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                // 如果是 AI 聊天界面，建议不要滑动隐藏导航栏，以免输入框位置跳动
+                if (selectedTab == MainTab.AIChat) {
+                    isBottomBarVisible = true
+                    return Offset.Zero
+                }
+                
                 if (available.y < -15) {
                     isBottomBarVisible = false
                 } else if (available.y > 15) {
@@ -141,6 +147,8 @@ fun MainEntryScreen(
                                         previousTab = selectedTab
                                         selectedTab = tab 
                                         if (tab != MainTab.Discover) showWanAndroidInDiscover = false
+                                        // 切换到 AI 聊天时确保导航栏可见
+                                        if (tab == MainTab.AIChat) isBottomBarVisible = true
                                     },
                                     icon = { 
                                         Icon(
@@ -185,7 +193,8 @@ fun MainEntryScreen(
                         DiscoverScreen(onEnterWanAndroid = { showWanAndroidInDiscover = true })
                     }
                 }
-                MainTab.AIChat -> AIChatScreen()
+                // 关键修改：传递 paddingValues 以便处理底部遮挡
+                MainTab.AIChat -> AIChatScreen(contentPadding = paddingValues)
                 MainTab.Me -> MeScreen()
                 MainTab.Search -> MainSearchScreen(onBack = { selectedTab = previousTab })
                 else -> {
