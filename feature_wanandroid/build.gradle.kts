@@ -6,9 +6,7 @@ plugins {
 
 android {
     namespace = "com.ggb.wanandroid"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 24

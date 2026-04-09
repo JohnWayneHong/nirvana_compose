@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ggb.wanandroid.feature.setting.SettingViewModel
 import com.ggb.wanandroid.feature.setting.SettingViewModelFactory
@@ -25,7 +26,8 @@ class MainActivity : ComponentActivity(){
         
         // 检查是否需要应用保存的语言（第一次启动时）
         checkAndApplyLanguage()
-        
+        // 【新增这一行】：告诉系统，App 将自己处理状态栏、导航栏和软键盘的边距
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
 //            MainScreen()
 //            MainEntryScreen {
