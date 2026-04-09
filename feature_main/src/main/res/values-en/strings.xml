@@ -5,6 +5,11 @@
     <string name="main_nav_message">Message</string>
     <string name="main_nav_me">Me</string>
 
+    <string name="common_close">Close</string>
+    <string name="common_discover_new_version">New Version Available</string>
+    <string name="common_upgrade_now">Update Now</string>
+    <string name="common_no_upgrade">Not Now</string>
+
     <!-- MeScreen -->
     <string name="me_my_achievement">My Achievement</string>
     <string name="me_my_favorites">My Favorites</string>

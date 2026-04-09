@@ -5,6 +5,11 @@
     <string name="main_nav_message">메시지</string>
     <string name="main_nav_me">내 정보</string>
 
+    <string name="common_close">닫기</string>
+    <string name="common_discover_new_version">새 버전 사용 가능</string>
+    <string name="common_upgrade_now">지금 업데이트</string>
+    <string name="common_no_upgrade">나중에</string>
+
     <!-- MeScreen -->
     <string name="me_my_achievement">내 업적</string>
     <string name="me_my_favorites">내 즐겨찾기</string>

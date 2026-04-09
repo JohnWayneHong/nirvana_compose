@@ -5,6 +5,11 @@
     <string name="main_nav_message">消息</string>
     <string name="main_nav_me">我的</string>
 
+    <string name="common_close">關閉</string>
+    <string name="common_discover_new_version">發現新版本</string>
+    <string name="common_upgrade_now">立即更新</string>
+    <string name="common_no_upgrade">以後再說</string>
+
     <!-- MeScreen -->
     <string name="me_my_achievement">我的成就</string>
     <string name="me_my_favorites">我的收藏</string>

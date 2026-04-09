@@ -3,6 +3,7 @@ package com.ggb.wanandroid.main
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ggb.wanandroid.main.update.UpdateState
 import com.ggb.wanandroid.main.update.UpdateViewModel
+import androidx.core.net.toUri
 import com.ggb.wanandroid.main.update.ui.UpdateDialog
 
 sealed class MainTab(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
@@ -54,6 +56,10 @@ fun MainEntryScreen(
     val context = LocalContext.current
     val updateViewModel: UpdateViewModel = viewModel()
     val updateState by updateViewModel.updateState.collectAsState()
+    // 【新增】：监听进度
+    val downloadProgress by updateViewModel.downloadProgress.collectAsState()
+    // 【新增】：收集下载速度的状态
+    val downloadSpeed by updateViewModel.downloadSpeed.collectAsState()
 
     var selectedTab by remember { mutableStateOf<MainTab>(MainTab.Home) }
     var previousTab by remember { mutableStateOf<MainTab>(MainTab.Home) }
@@ -108,7 +114,9 @@ fun MainEntryScreen(
     }
 
     LaunchedEffect(Unit) {
-        updateViewModel.checkUpdate()
+        // 把 context 传进去
+        updateViewModel.checkUpdate(context)
+        Log.d("UpdateDebug", "UI 层收到状态: $updateState")
     }
 
     Scaffold(
@@ -208,12 +216,17 @@ fun MainEntryScreen(
 
     when (val state = updateState) {
         is UpdateState.HasUpdate -> {
+            // 1. 使用 UpdateDialog，不需要传 show=true
             UpdateDialog(
                 updateInfo = state.updateInfo,
-                onDismiss = { updateViewModel.resetState() },
-                onConfirm = { url ->
+                downloadProgress,
+                downloadSpeed = downloadSpeed, // 【传入下载速度】
+                onDismiss = {
                     updateViewModel.resetState()
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                },
+                onConfirm = { downloadUrl ->
+                    // 【核心修改】：点击确认不再去跳浏览器，而是触发 ViewModel 去下载！
+                    updateViewModel.downloadAndInstallApk(context, downloadUrl)
                 }
             )
         }

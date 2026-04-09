@@ -22,6 +22,7 @@ import com.ggb.wanandroid.util.CookieInterceptor
 import com.ggb.wanandroid.util.NavControllerManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.util.Locale
 
 class App : Application(), SingletonImageLoader.Factory {
@@ -41,7 +42,29 @@ class App : Application(), SingletonImageLoader.Factory {
         StringResourceHelper.init(this)
         initNetworkManager(
             NetworkConfigBuilder()
-                .baseUrl("https://www.wanandroid.com")
+                .baseUrl("https://www.wanandroid.com") // 默认还是 WanAndroid
+                .addInterceptor { chain ->
+                    val request = chain.request()
+                    val builder = request.newBuilder()
+
+                    // 检查有没有打标记
+                    val domainName = request.header("Domain-Name")
+                    if (domainName == "Nirvana") {
+                        // 如果有 Nirvana 标记，把 host 换成你自己的后台
+                        val newBaseUrl = "http://114.132.56.13".toHttpUrlOrNull()
+                        if (newBaseUrl != null) {
+                            val newFullUrl = request.url.newBuilder()
+                                .scheme(newBaseUrl.scheme)
+                                .host(newBaseUrl.host)
+                                .port(newBaseUrl.port)
+                                .build()
+                            builder.url(newFullUrl)
+                        }
+                        // 移除这个标记，别发给后端
+                        builder.removeHeader("Domain-Name")
+                    }
+                    chain.proceed(builder.build())
+                }
                 .addInterceptor(AddCookieInterceptor())  // 请求时携带本地 Cookie
                 .addInterceptor(CookieInterceptor())   // 响应时保存 Set-Cookie
                 .logLevel(LoggingInterceptor.LogLevel.BODY)
