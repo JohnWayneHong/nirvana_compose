@@ -81,7 +81,9 @@ dependencies {
     implementation(libs.androidx.compose.material3.icons)
     
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
-
+    // 添加纯 Compose 的 Markdown 渲染引擎 (使用 Material 3 风格版本)
+    // 把 0.40.2 (API 36 )  改成 0.35.0
+    implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.35.0")
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

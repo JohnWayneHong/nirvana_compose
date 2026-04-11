@@ -2,7 +2,11 @@ package com.ggb.wanandroid.main
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -23,9 +29,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
@@ -40,6 +53,9 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,28 +92,12 @@ fun AIChatScreen(
     val volcNetTool = remember { VolcNetTool() }
     val listState = rememberLazyListState()
 
-    // 【新增 1】：监听用户是否正在拖拽列表（核心！）
-    val isDragged by listState.interactionSource.collectIsDraggedAsState()
 
-    // 【新增 2】：定义一个状态，控制是否允许自动滚动
-    var autoScrollEnabled by remember { mutableStateOf(true) }
-
-    // 【新增 3】：智能判断何时开启/关闭自动滚动
-    LaunchedEffect(isDragged, listState.canScrollForward) {
-        if (isDragged) {
-            // 只要用户手指触摸并滑动屏幕，立刻暂停自动滚动
-            autoScrollEnabled = false
-        } else if (!listState.canScrollForward) {
-            // 当用户没有在滑动，并且列表已经触底时（canScrollForward 为 false 代表到底了）
-            // 重新恢复自动滚动
-            autoScrollEnabled = true
-        }
-    }
-
-    // 悬浮按钮的显示逻辑：只有在“关闭了自动滚动” 且 “列表还可以往下滚” 的时候才显示
+    // ✅ 修复：不仅判断 index，还判断在第 0 条内容里的滑动偏移量。
+    // 这样只要稍微往上滑动了一点点（超过150像素），即使是很长的对话，也会立刻显示悬浮窗！
     val showScrollToBottom by remember {
         derivedStateOf {
-            !autoScrollEnabled && listState.canScrollForward
+            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 150
         }
     }
 
@@ -214,19 +214,26 @@ fun AIChatScreen(
                     Column(modifier = Modifier.fillMaxSize()) {
                         LazyColumn(
                             state = listState,
-                            // weight(1f) 会让 LazyColumn 占据所有剩余空间
+                            reverseLayout = true,
                             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
                         ) {
-                            items(
-                                items = displayMessages,
-                                key = { it.id }
-                            ) { message ->
-                                ChatBubble(message)
-                            }
                             if (isWaitingResponse) {
                                 item(key = "loading_anim") { LoadingResponseItem() }
+                            }
+
+                            items(
+                                items = displayMessages.reversed(),
+                                // 注意：这里必须保证 it.id 是绝对唯一且不会变的！
+                                // 如果你的 ChatMessage 没有唯一的 id，建议加上 val id: String = UUID.randomUUID().toString()
+                                key = { it.id }
+                            ) { message ->
+                                // 【核心修复】：为每一个消息气泡包裹一层 Box，并加上 animateItem()
+                                // 这会让高度的瞬间突变变成平滑的拉伸动画，彻底消除闪烁感！
+                                Box(modifier = Modifier.animateItem()) {
+                                    ChatBubble(message)
+                                }
                             }
                         }
 
@@ -242,20 +249,30 @@ fun AIChatScreen(
                                     isWaitingResponse = true
 
                                     coroutineScope.launch {
-                                        // 【修复点 1】：将发送后的首次动画滚动放入独立子协程
-                                        // 防止手指滑动抛出 CancellationException 导致后续的网络请求无法发出
+                                        // ✅ 修复1：发送消息后，强制瞬间回到底部 (index 0)
+                                        // 坚决不用 animateScrollToItem，避免被键盘收起动画打断
                                         launch {
                                             try {
-                                                listState.animateScrollToItem(listState.layoutInfo.totalItemsCount.coerceAtLeast(0))
-                                            } catch (e: Exception) {
-                                                // 忽略滚动被打断的异常
-                                            }
+                                                listState.scrollToItem(0)
+                                            } catch (e: Exception) {}
                                         }
 
                                         var aiMsgStarted = false
+                                        var currentAiContent = "" // 用一个局部变量在内存中高速缓存累加的文本
+                                        var lastUiUpdateTime = 0L // 记录上次刷新 UI 的时间
+
                                         volcNetTool.sendChatRequestStream(messages = messageList)
                                             .onCompletion {
                                                 isWaitingResponse = false
+                                                // 【兜底逻辑】：流结束后，把最后一点可能没满 100ms 门槛的文本强制推到屏幕上
+                                                if (aiMsgStarted) {
+                                                    val lastMsg = messageList.last()
+                                                    if (lastMsg.content != currentAiContent) {
+                                                        messageList = messageList.toMutableList().also {
+                                                            it[it.lastIndex] = lastMsg.copy(content = currentAiContent)
+                                                        }
+                                                    }
+                                                }
                                                 saveSessionToDb()
                                             }
                                             .catch { e ->
@@ -266,31 +283,21 @@ fun AIChatScreen(
                                             .collect { chunk ->
                                                 if (!aiMsgStarted) {
                                                     isWaitingResponse = false
-                                                    messageList = messageList + ChatMessage(role = "assistant", content = chunk)
+                                                    currentAiContent = chunk
+                                                    messageList = messageList + ChatMessage(role = "assistant", content = currentAiContent)
                                                     aiMsgStarted = true
+                                                    lastUiUpdateTime = System.currentTimeMillis()
                                                 } else {
-                                                    val lastMsg = messageList.last()
-                                                    val updatedMsg = lastMsg.copy(content = lastMsg.content + chunk)
-                                                    messageList = messageList.toMutableList().also { it[it.lastIndex] = updatedMsg }
-                                                }
+                                                    currentAiContent += chunk
+                                                    val now = System.currentTimeMillis()
 
-                                                if (autoScrollEnabled) {
-                                                    launch {
-                                                        try {
-                                                            // 目标索引始终是最后一条消息
-                                                            val targetIndex = (listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)
-
-                                                            // 【核心修复】：加上极大的偏移量，强制让该 Item 的底部对齐屏幕底部
-                                                            // Int.MAX_VALUE 有时会导致 Compose 计算溢出，所以我们用一个足够大但安全的像素值
-                                                            val bottomOffset = 100000
-
-                                                            listState.scrollToItem(
-                                                                index = targetIndex,
-                                                                scrollOffset = bottomOffset // 指定向下偏移，让视图强行推到底
-                                                            )
-                                                        } catch (e: Exception) {
-                                                            // 忽略由于手指拖拽导致的 CancellationException
+                                                    // ✅ 【核心修复】：性能节流！每 100 毫秒才允许更新一次真正的 UI
+                                                    if (now - lastUiUpdateTime > 100) {
+                                                        val lastMsg = messageList.last()
+                                                        messageList = messageList.toMutableList().also {
+                                                            it[it.lastIndex] = lastMsg.copy(content = currentAiContent)
                                                         }
+                                                        lastUiUpdateTime = now
                                                     }
                                                 }
                                             }
@@ -308,7 +315,9 @@ fun AIChatScreen(
                         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 88.dp)
                     ) {
                         Surface(
-                            onClick = { coroutineScope.launch { listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1) } },
+                            // ✅ 修复2：在流式生成中，抛弃平滑动画，使用瞬间滚动。
+                            // 这样彻底杜绝了高度膨胀引发的 Compose 动画引擎闪烁 Bug！
+                            onClick = { coroutineScope.launch { listState.scrollToItem(0) } },
                             color = Color(0xFF00B4D8).copy(alpha = 0.9f),
                             shape = CircleShape,
                             shadowElevation = 6.dp,
@@ -327,44 +336,35 @@ fun AIChatScreen(
 
 @Composable
 fun LoadingResponseItem() {
-    // 定义目标进度，初始为 25%
-    var targetProgress by remember { mutableFloatStateOf(0.25f) }
-
-    // 使用 animateFloatAsState 让进度变化时带有平滑的动画过渡
-    val animatedProgress by animateFloatAsState(
-        targetValue = targetProgress,
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-        label = "progress_anim"
+    // 业界标准的 AI 思考动画：呼吸灯/渐变闪烁效果
+    val infiniteTransition = rememberInfiniteTransition(label = "loading_pulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha_anim"
     )
 
-    // 协程模拟阶段性“思考”进度
-    LaunchedEffect(Unit) {
-        delay(400)
-        targetProgress = 0.40f
-        delay(600)
-        targetProgress = 0.50f
-        delay(800)
-        targetProgress = 0.60f
-        delay(1000)
-        targetProgress = 0.75f
-        delay(1200)
-        targetProgress = 0.90f
-        delay(800)
-        targetProgress = 0.95f
-        // 停留在 95%，直到大模型返回首字并触发外部状态改变，移除这个组件
-    }
-
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        CircularProgressIndicator(
-            progress = { animatedProgress }, // 改为确定进度的指示器
-            modifier = Modifier.size(18.dp),
-            color = Color(0xFF00B4D8),
-            strokeWidth = 2.dp,
-            trackColor = Color(0xFF1B263B) // 添加轨道底色使其更美观
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.AutoAwesome,
+            contentDescription = null,
+            tint = Color(0xFF00B4D8).copy(alpha = alpha),
+            modifier = Modifier.size(20.dp)
         )
-        Spacer(modifier = Modifier.width(12.dp))
-        // 动态显示百分比
-        Text("牛蛙呐正在思考... ${(animatedProgress * 100).toInt()}%", color = Color(0xFF00B4D8), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "牛蛙呐正在思考...",
+            color = Color(0xFF00B4D8).copy(alpha = alpha),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -397,21 +397,93 @@ fun ChatHistoryView(db: VolcDatabase, onSessionClick: (ChatSessionEntity) -> Uni
 }
 
 @Composable
-fun ChatInputArea(inputText: String, onTextChange: (String) -> Unit, isWaiting: Boolean, onSend: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxWidth(), color = Color(0xFF1B263B), tonalElevation = 8.dp) {
+fun ChatInputArea(
+    inputText: String,
+    onTextChange: (String) -> Unit,
+    isWaiting: Boolean,
+    onSend: () -> Unit
+) {
+    // 使用 Surface 垫起底部，增加层次感
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color(0xFF1B263B), // 保持和你背景一致的深色，或者用 MaterialTheme.colorScheme.surface
+        tonalElevation = 8.dp
+    ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .navigationBarsPadding() // 自动适配 Android 导航栏高度
+                .imePadding(), // 自动适配软键盘弹出
+            verticalAlignment = Alignment.Bottom // 设置为底部对齐，方便多行文本输入时按钮位置固定
         ) {
-            TextField(
-                value = inputText, onValueChange = onTextChange, modifier = Modifier.weight(1f).clip(RoundedCornerShape(24.dp)),
-                placeholder = { Text("说点什么...", color = Color.Gray) }, enabled = !isWaiting,
-                colors = TextFieldDefaults.colors(focusedContainerColor = Color(0xFF0D1B2A), unfocusedContainerColor = Color(0xFF0D1B2A), focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
-                maxLines = 4
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(onClick = onSend, enabled = inputText.isNotBlank() && !isWaiting, modifier = Modifier.size(48.dp).background(brush = if (inputText.isNotBlank() && !isWaiting) Brush.linearGradient(colors = listOf(Color(0xFF00B4D8), Color(0xFF0077B6))) else Brush.linearGradient(colors = listOf(Color.Gray, Color.DarkGray)), shape = RoundedCornerShape(24.dp))) {
-                Icon(Icons.Default.Send, contentDescription = null, tint = Color.White)
+            // 自定义输入框背景容器
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 44.dp, max = 150.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFF0D1B2A)) // 输入框深色背景
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicTextField(
+                    value = inputText,
+                    onValueChange = onTextChange,
+                    modifier = Modifier.weight(1f),
+                    enabled = !isWaiting, // 等待中禁用输入
+                    textStyle = TextStyle(
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        lineHeight = 22.sp
+                    ),
+                    cursorBrush = SolidColor(Color(0xFF00B4D8)),
+                    decorationBox = { innerTextField ->
+                        if (inputText.isEmpty()) {
+                            Text(
+                                text = "说点什么...",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        innerTextField()
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // 重新设计的发送按钮
+            // 当有文字且不在等待状态时，显示亮蓝色渐变，否则显示灰色
+            val isEnabled = inputText.isNotBlank() && !isWaiting
+            val buttonBgColor = if (isEnabled) {
+                Brush.linearGradient(colors = listOf(Color(0xFF00B4D8), Color(0xFF0077B6)))
+            } else {
+                Brush.linearGradient(colors = listOf(Color.Gray, Color.DarkGray))
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(buttonBgColor)
+                    .clickable(enabled = isEnabled) { onSend() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isWaiting) {
+                    // 发送中可以显示一个极小的白圈，或者保持发送图标变灰
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
     }
@@ -423,9 +495,41 @@ fun ChatBubble(message: ChatMessage) {
     val alignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
     val bgColor = if (isUser) Color(0xFF0077B6) else Color(0xFF415A77)
     val shape = if (isUser) RoundedCornerShape(16.dp, 16.dp, 2.dp, 16.dp) else RoundedCornerShape(16.dp, 16.dp, 16.dp, 2.dp)
+
     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = alignment) {
         Surface(color = bgColor, shape = shape, tonalElevation = 2.dp) {
-            Text(text = message.content, modifier = Modifier.padding(12.dp), color = Color.White, fontSize = 15.sp, lineHeight = 20.sp)
+
+            // 核心修改：适配最新版本的 Markdown API
+            Markdown(
+                content = message.content,
+                modifier = Modifier.padding(12.dp),
+
+                // 1. Colors 现在只负责：最基础文字色、各种背景色、分割线
+                colors = markdownColor(
+                    text = Color.White,                             // 基础文字颜色为白色
+                    codeBackground = Color(0xFF0D1B2A),             // 代码块的深色背景
+                    inlineCodeBackground = Color(0xFF0D1B2A).copy(alpha = 0.5f), // 行内代码背景稍微浅一点
+                    dividerColor = Color.LightGray                  // 分割线颜色
+                ),
+
+                // 2. Typography 现在负责：段落排版、代码高亮文字、超链接文字等细节
+                // 2. Typography 负责排版和特定文本样式
+                typography = markdownTypography(
+                    text = LocalTextStyle.current.copy(fontSize = 15.sp, lineHeight = 20.sp, color = Color.White),
+                    paragraph = LocalTextStyle.current.copy(fontSize = 15.sp, lineHeight = 20.sp, color = Color.White),
+                    code = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, color = Color(0xFF00B4D8)),
+                    textLink = TextLinkStyles(style = SpanStyle(color = Color(0xFF90E0EF))),
+
+                    // 【新增修复】：强制覆盖所有标题的大小，使其自适应气泡布局
+                    h1 = LocalTextStyle.current.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                    h2 = LocalTextStyle.current.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                    h3 = LocalTextStyle.current.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                    h4 = LocalTextStyle.current.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                    h5 = LocalTextStyle.current.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                    h6 = LocalTextStyle.current.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                )
+            )
+
         }
     }
 }
