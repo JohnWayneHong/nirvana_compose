@@ -1,11 +1,16 @@
 package com.ggb.wanandroid.main
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -34,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ggb.wanandroid.main.update.UpdateState
 import com.ggb.wanandroid.main.update.UpdateViewModel
@@ -69,6 +75,17 @@ fun MainEntryScreen(
     var lastBackPressTime by remember { mutableLongStateOf(0L) }
     
     val exitMessage = stringResource(R.string.press_again_to_exit)
+
+    // 【新增】：注册请求通知权限的 Launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        // 无论用户是否同意通知权限，我们都去下载，只是拒绝的话不会有通知栏进度
+        val state = updateState
+        if (state is UpdateState.HasUpdate) {
+            updateViewModel.downloadAndInstallApk(context, state.updateInfo.downloadUrl)
+        }
+    }
 
     // 处理返回键逻辑
     BackHandler {
@@ -216,17 +233,26 @@ fun MainEntryScreen(
 
     when (val state = updateState) {
         is UpdateState.HasUpdate -> {
-            // 1. 使用 UpdateDialog，不需要传 show=true
             UpdateDialog(
                 updateInfo = state.updateInfo,
-                downloadProgress,
-                downloadSpeed = downloadSpeed, // 【传入下载速度】
+                downloadProgress = downloadProgress,
+                downloadSpeed = downloadSpeed,
                 onDismiss = {
                     updateViewModel.resetState()
                 },
                 onConfirm = { downloadUrl ->
-                    // 【核心修改】：点击确认不再去跳浏览器，而是触发 ViewModel 去下载！
-                    updateViewModel.downloadAndInstallApk(context, downloadUrl)
+                    // 【核心修改】：点击升级时，拦截并检查 Android 13+ 的通知权限
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                            updateViewModel.downloadAndInstallApk(context, downloadUrl)
+                        } else {
+                            // 去请求权限，请求结果在上面的 permissionLauncher 回调中处理
+                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    } else {
+                        // API 33 以下不需要动态申请该权限
+                        updateViewModel.downloadAndInstallApk(context, downloadUrl)
+                    }
                 }
             )
         }

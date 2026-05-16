@@ -49,6 +49,10 @@ class UpdateViewModel(
                 onSuccess = { updateInfo ->
                     val localVersionCode = getAppVersionCode(context)
                     if (updateInfo.versionCode > localVersionCode) {
+                        // 【新增】：检查本地是否已经存在完整的最新版 APK
+                        if (isApkAlreadyDownloaded(context, updateInfo.versionCode)) {
+                            _downloadProgress.value = 100
+                        }
                         _updateState.value = UpdateState.HasUpdate(updateInfo)
                     } else {
                         _updateState.value = UpdateState.Idle
@@ -68,11 +72,22 @@ class UpdateViewModel(
     }
 
     fun downloadAndInstallApk(context: Context, apkUrl: String) {
+        val appContext = context.applicationContext
+
+        // 1. 如果进度已经是 100，说明文件已下载，直接拉起安装即可，不走网络请求
+        if (_downloadProgress.value == 100) {
+            val downloadDir = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            val apkFile = File(downloadDir, "nirvana_update.apk")
+            if (apkFile.exists()) {
+                installApkLocal(appContext, apkFile)
+            }
+            return
+        }
+
+        // 如果正在下载中，防止重复点击
         if (_downloadProgress.value in 1..99) return
 
         viewModelScope.launch(Dispatchers.IO) {
-            // 使用 applicationContext 防止内存泄漏
-            val appContext = context.applicationContext
             val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val notificationId = 1001
             val channelId = "update_download_channel"
@@ -82,7 +97,7 @@ class UpdateViewModel(
                 notificationManager.createNotificationChannel(channel)
             }
 
-            // 【新增 1】：获取能够唤起当前 App 回到前台的 Intent (解决点击回到弹窗)
+            // 获取能够唤起当前 App 回到前台的 Intent
             val launchIntent = appContext.packageManager.getLaunchIntentForPackage(appContext.packageName)?.apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
@@ -90,41 +105,66 @@ class UpdateViewModel(
                 appContext, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // 初始化通知构建器
             val notificationBuilder = NotificationCompat.Builder(appContext, channelId)
-                .setSmallIcon(com.ggb.wanandroid.R.drawable.icon_article_logo)
+                .setSmallIcon(com.ggb.wanandroid.R.drawable.icon_article_logo) // 替换为你的应用图标
                 .setContentTitle("牛蛙呐 (Nirvana) 正在下载新版本")
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
-                .setContentIntent(pendingIntent) // 绑定点击回到 App 的事件
+                .setContentIntent(pendingIntent)
 
             try {
-                _downloadProgress.value = 1
+                // UI 状态重置为开始下载
+                withContext(Dispatchers.Main) { _downloadProgress.value = 1 }
 
                 val downloadDir = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
                 val apkFile = File(downloadDir, "nirvana_update.apk")
-                if (apkFile.exists()) apkFile.delete()
 
-                val connection = URL(apkUrl).openConnection() as HttpURLConnection
+                // 断点续传核心：获取已下载的长度
+                var downloadedLength = 0L
+                if (apkFile.exists()) {
+                    downloadedLength = apkFile.length()
+                }
+
+                val url = URL(apkUrl)
+                val connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = 15000
                 connection.readTimeout = 15000
+
+                // 设置断点续传请求头
+                if (downloadedLength > 0) {
+                    connection.setRequestProperty("Range", "bytes=$downloadedLength-")
+                }
+
                 connection.connect()
 
-                val fileLength = connection.contentLength
-                val input = BufferedInputStream(connection.inputStream)
-                val output = FileOutputStream(apkFile)
+                val responseCode = connection.responseCode
+                val isResume = responseCode == HttpURLConnection.HTTP_PARTIAL // 206 Partial Content
 
-                // 【修改 2】：稍微增大缓冲区到 8192，有助于更稳定的测速
+                // 如果服务器不支持断点续传，或者由于某种原因返回了完整的 200 OK，我们需要清空旧文件重新下载
+                if (!isResume && responseCode == HttpURLConnection.HTTP_OK) {
+                    if (apkFile.exists()) apkFile.delete()
+                    downloadedLength = 0L
+                } else if (responseCode >= 400) {
+                    throw Exception("Server returned code: $responseCode")
+                }
+
+                // 计算文件的总大小（本次需要下载的大小 + 已经下载的大小）
+                val contentLength = connection.contentLength
+                val totalLength = if (contentLength > 0) contentLength + downloadedLength else 0L
+
+                val input = BufferedInputStream(connection.inputStream)
+                // 使用 append = true 模式打开输出流，这样新数据会追加到旧数据末尾
+                val output = FileOutputStream(apkFile, true)
+
                 val data = ByteArray(8192)
-                var total: Long = 0
+                var total = downloadedLength // total 记录的是文件的总物理进度
                 var count: Int
 
-                // 【修改 3】：用于测速的时间和字节记录
                 var lastUpdateTime = System.currentTimeMillis()
-                var lastUpdateBytes = 0L
+                var lastUpdateBytes = downloadedLength
 
-                notificationBuilder.setProgress(100, 0, false)
+                notificationBuilder.setProgress(100, if (totalLength > 0) (total * 100 / totalLength).toInt() else 0, false)
                 notificationManager.notify(notificationId, notificationBuilder.build())
 
                 while (input.read(data).also { count = it } != -1) {
@@ -134,26 +174,23 @@ class UpdateViewModel(
                     val currentTime = System.currentTimeMillis()
                     val timeDiff = currentTime - lastUpdateTime
 
-                    // 【核心逻辑】：为了防止 UI 卡顿，限制每 500ms 更新一次进度和计算一次速度
-                    if (timeDiff >= 500 || (fileLength > 0 && total == fileLength.toLong())) {
-                        val progress = if (fileLength > 0) (total * 100 / fileLength).toInt() else 0
+                    // 限制每 500ms 更新一次进度和计算一次速度
+                    if (timeDiff >= 500 || (totalLength > 0 && total == totalLength)) {
+                        val progress = if (totalLength > 0) (total * 100 / totalLength).toInt() else 0
 
-                        // 计算这 500ms 内的平均速度
-                        val downloadedBytes = total - lastUpdateBytes
-                        val speedBps = if (timeDiff > 0) (downloadedBytes * 1000f / timeDiff) else 0f
+                        val downloadedInInterval = total - lastUpdateBytes
+                        val speedBps = if (timeDiff > 0) (downloadedInInterval * 1000f / timeDiff) else 0f
                         val speedStr = formatSpeed(speedBps)
 
-                        // 顺便让状态栏通知也能看到下载速度，体验拉满！
                         notificationBuilder.setProgress(100, progress, false)
                         notificationBuilder.setContentText("已下载: $progress%  |  $speedStr")
                         notificationManager.notify(notificationId, notificationBuilder.build())
 
                         withContext(Dispatchers.Main) {
-                            _downloadProgress.value = progress.coerceAtLeast(1)
+                            _downloadProgress.value = progress.coerceIn(1, 100)
                             _downloadSpeed.value = speedStr
                         }
 
-                        // 重置测速标记
                         lastUpdateTime = currentTime
                         lastUpdateBytes = total
                     }
@@ -162,30 +199,24 @@ class UpdateViewModel(
                 output.close()
                 input.close()
 
-                // 【新增 2】：生成安装 APK 的 Intent
+                // 下载完成后的处理
                 val installIntent = getInstallIntent(appContext, apkFile)
                 val installPendingIntent = PendingIntent.getActivity(
                     appContext, 1, installIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                // 【新增 3】：下载完成，更新通知为可点击的安装提示（完美兜底后台限制）
                 notificationBuilder.setContentTitle("下载完成")
                     .setContentText("点击立即安装新版本")
                     .setProgress(0, 0, false)
-                    .setOngoing(false) // 允许划掉
-                    .setAutoCancel(true) // 点击后自动消失
-                    .setContentIntent(installPendingIntent) // 绑定点击拉起安装
+                    .setOngoing(false)
+                    .setAutoCancel(true)
+                    .setContentIntent(installPendingIntent)
                 notificationManager.notify(notificationId, notificationBuilder.build())
 
                 withContext(Dispatchers.Main) {
                     _downloadProgress.value = 100
-                    try {
-                        // 尝试直接拉起安装（如果 App 在前台会成功，在后台会被系统拦截，由上面的通知兜底）
-                        appContext.startActivity(installIntent)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                    resetState() // 安装界面出来后，把 App 内的弹窗关掉
+                    _downloadSpeed.value = ""
+                    installApkLocal(appContext, apkFile)
                 }
 
             } catch (e: Exception) {
@@ -194,32 +225,34 @@ class UpdateViewModel(
                     .setContentText("请检查网络后重试")
                     .setProgress(0, 0, false)
                     .setOngoing(false)
-                    // 下载失败时，点击通知还是回到 App
                     .setContentIntent(pendingIntent)
                 notificationManager.notify(notificationId, notificationBuilder.build())
 
                 withContext(Dispatchers.Main) {
                     _downloadProgress.value = -1
+                    _downloadSpeed.value = ""
                 }
             }
         }
     }
 
-    // 【新增 4】：字节/秒 转换为易读的 MB/s 或 KB/s 的工具函数
-    private fun formatSpeed(bytesPerSecond: Float): String {
-        return when {
-            bytesPerSecond >= 1024 * 1024 -> String.format(Locale.getDefault(), "%.2f MB/s", bytesPerSecond / (1024 * 1024))
-            bytesPerSecond >= 1024 -> String.format(Locale.getDefault(), "%.2f KB/s", bytesPerSecond / 1024)
-            else -> String.format(Locale.getDefault(), "%.0f B/s", bytesPerSecond)
+    // 【辅助方法】：内部拉起安装
+    private fun installApkLocal(context: Context, apkFile: File) {
+        try {
+            val installIntent = getInstallIntent(context, apkFile)
+            context.startActivity(installIntent)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
-    // 【抽取出的通用安装 Intent 构建器】
+    // 【辅助方法】：获取安装 Intent
     private fun getInstallIntent(context: Context, apkFile: File): Intent {
         val intent = Intent(Intent.ACTION_VIEW)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val uri: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            // 注意：这里的 authority 必须和你的 AndroidManifest.xml 中配置的 FileProvider 保持绝对一致！
             val authority = "${context.packageName}.fileprovider"
             FileProvider.getUriForFile(context, authority, apkFile)
         } else {
@@ -227,6 +260,15 @@ class UpdateViewModel(
         }
         intent.setDataAndType(uri, "application/vnd.android.package-archive")
         return intent
+    }
+
+    // 【辅助方法】：速度格式化
+    private fun formatSpeed(bytesPerSecond: Float): String {
+        return when {
+            bytesPerSecond >= 1024 * 1024 -> String.format(Locale.getDefault(), "%.2f MB/s", bytesPerSecond / (1024 * 1024))
+            bytesPerSecond >= 1024 -> String.format(Locale.getDefault(), "%.2f KB/s", bytesPerSecond / 1024)
+            else -> String.format(Locale.getDefault(), "%.0f B/s", bytesPerSecond)
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -242,6 +284,33 @@ class UpdateViewModel(
             0
         }
     }
+
+    // 【新增方法】：校验已下载的 APK 是否完整并且版本号匹配
+    @Suppress("DEPRECATION")
+    private fun isApkAlreadyDownloaded(context: Context, serverVersionCode: Int): Boolean {
+        val downloadDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+        val apkFile = File(downloadDir, "nirvana_update.apk")
+        if (!apkFile.exists()) return false
+
+        return try {
+            val packageManager = context.packageManager
+            // 获取本地未安装 APK 的信息，如果包损坏（没下完），这里会返回 null 抛异常
+            val packageInfo = packageManager.getPackageArchiveInfo(apkFile.absolutePath, 0)
+
+            val downloadedVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo?.longVersionCode?.toInt() ?: -1
+            } else {
+                packageInfo?.versionCode ?: -1
+            }
+
+            // 只有当本地包的版本号与服务器要求的版本号完全一致时，才算作“已下载”
+            downloadedVersionCode == serverVersionCode
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+
 }
 
 sealed class UpdateState {

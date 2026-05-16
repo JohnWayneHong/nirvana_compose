@@ -42,39 +42,41 @@ import kotlin.io.path.moveTo
 @Composable
 fun UpdateDialog(
     updateInfo: UpdateInfo,
-    downloadProgress: Int, // 【新增】：接收进度参数
-    downloadSpeed: String, // 【新增参数】
+    downloadProgress: Int,
+    downloadSpeed: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
+    // 【核心新增】：判断当前是否正处于下载中（1% 到 99% 之间）
+    val isDownloading = downloadProgress in 1..99
+
     Dialog(
         onDismissRequest = {
-            if (!updateInfo.isForceUpdate) {
+            // 只有非强制更新，且当前没有在下载中，才允许通过物理返回键或点击外部关闭
+            if (!updateInfo.isForceUpdate && !isDownloading) {
                 onDismiss()
             }
         },
         properties = DialogProperties(
-            usePlatformDefaultWidth = false, // 允许完全自定义宽度
-            dismissOnBackPress = !updateInfo.isForceUpdate,
-            dismissOnClickOutside = !updateInfo.isForceUpdate
+            usePlatformDefaultWidth = false,
+            // 下载期间锁定弹窗，防止误触
+            dismissOnBackPress = !updateInfo.isForceUpdate && !isDownloading,
+            dismissOnClickOutside = !updateInfo.isForceUpdate && !isDownloading
         )
     ) {
-        // 最外层容器，控制整体宽度和圆角
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
                 .clip(RoundedCornerShape(20.dp)),
             contentAlignment = Alignment.Center
         ) {
-            // 1. 统一的底层背景图 (完美铺满圆角)
             Image(
                 painter = painterResource(id = R.drawable.nirvana_update_bg),
                 contentDescription = "Update Background",
-                contentScale = ContentScale.Crop, // 裁剪填充以适应弹窗比例
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.matchParentSize()
             )
 
-            // 2. 根据 updateStyle 渲染不同内容层（背景设为透明以露出底图）
             when (updateInfo.updateStyle) {
                 "307" -> UpdateStyle307(updateInfo, downloadProgress, downloadSpeed, onDismiss, onConfirm)
                 else -> UpdateStyleDefault(updateInfo, downloadProgress, downloadSpeed, onDismiss, onConfirm)
@@ -86,17 +88,18 @@ fun UpdateDialog(
 @Composable
 private fun UpdateStyle307(
     updateInfo: UpdateInfo,
-    downloadProgress: Int, // 确保这里有接收进度参数
-    downloadSpeed: String, // 【新增参数】
+    downloadProgress: Int,
+    downloadSpeed: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
+    val isDownloading = downloadProgress in 1..99
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Transparent)
     ) {
-        // 顶部渐变与图标区域
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -108,11 +111,10 @@ private fun UpdateStyle307(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            // 使用新生成的纯代码图标
             NirvanaLogo(modifier = Modifier.size(64.dp))
 
-            // 既然底部加了“以后再说”，右上角的关闭按钮其实可以保留作为双重关闭途径，也可以删掉。这里为你保留。
-            if (!updateInfo.isForceUpdate) {
+            // 【修改点】：如果正在下载中，隐藏右上角的关闭按钮，防止误触
+            if (!updateInfo.isForceUpdate && !isDownloading && downloadProgress != 100) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -133,7 +135,6 @@ private fun UpdateStyle307(
             }
         }
 
-        // 文本内容区域
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -178,7 +179,6 @@ private fun UpdateStyle307(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 【核心修改】：加入进度条以及左右分布的按钮逻辑
             if (downloadProgress > 0) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     val progressText = when (downloadProgress) {
@@ -193,7 +193,6 @@ private fun UpdateStyle307(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(text = progressText, fontSize = 13.sp, color = progressColor, fontWeight = FontWeight.Bold)
-                        // 【新增】：当正在下载(1~99%)且速度有值时，在右边显示网速
                         if (downloadProgress in 1..99 && downloadSpeed.isNotEmpty()) {
                             Text(text = downloadSpeed, fontSize = 13.sp, color = progressColor, fontWeight = FontWeight.Bold)
                         }
@@ -207,6 +206,7 @@ private fun UpdateStyle307(
                         trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                     )
 
+                    // 【核心修改】：失败状态显示重试，100% 状态显示立即安装
                     if (downloadProgress == -1) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
@@ -215,6 +215,24 @@ private fun UpdateStyle307(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0072FF))
                         ) {
                             Text("点击重试")
+                        }
+                    } else if (downloadProgress == 100) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        // 【修改点】：使用 Box 容器并设置 contentAlignment 为 Center 来实现居中
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Button(
+                                onClick = { onConfirm(updateInfo.downloadUrl) },
+                                modifier = Modifier
+                                    .height(44.dp)
+                                    .fillMaxWidth(0.7f), // 稍微宽一点，更好看
+                                shape = RoundedCornerShape(22.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0072FF))
+                            ) {
+                                Text("立即安装", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -261,16 +279,12 @@ private fun UpdateStyle307(
     }
 }
 
-/**
- * 纯代码绘制的 Nirvana Logo 图标
- */
 @Composable
 fun NirvanaLogo(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
 
-        // 1. 绘制外层渐变圆环
         drawCircle(
             brush = Brush.linearGradient(
                 colors = listOf(Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.3f))
@@ -279,7 +293,6 @@ fun NirvanaLogo(modifier: Modifier = Modifier) {
             style = Stroke(width = 2.dp.toPx())
         )
 
-        // 2. 绘制内部抽象 "N" 线条
         val path = Path().apply {
             moveTo(w * 0.32f, h * 0.68f)
             lineTo(w * 0.32f, h * 0.32f)
@@ -297,7 +310,6 @@ fun NirvanaLogo(modifier: Modifier = Modifier) {
             )
         )
 
-        // 3. 右上角点缀一个小圆点，增加设计感
         drawCircle(
             color = Color.White,
             radius = 3.5.dp.toPx(),
@@ -309,15 +321,14 @@ fun NirvanaLogo(modifier: Modifier = Modifier) {
 @Composable
 private fun UpdateStyleDefault(
     updateInfo: UpdateInfo,
-    downloadProgress: Int, // 【新增参数】
-    downloadSpeed: String, // 【新增参数】
+    downloadProgress: Int,
+    downloadSpeed: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            // 为了保证文字在复杂的背景图上能看清，加一层半透明的遮罩
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
             .padding(24.dp)
     ) {
@@ -354,7 +365,6 @@ private fun UpdateStyleDefault(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 【核心修改】：根据进度决定显示按钮还是进度条
         if (downloadProgress > 0) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 val progressText = when (downloadProgress) {
@@ -369,13 +379,11 @@ private fun UpdateStyleDefault(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = progressText, fontSize = 13.sp, color = progressColor, fontWeight = FontWeight.Bold)
-                    // 【新增】：当正在下载(1~99%)且速度有值时，在右边显示网速
                     if (downloadProgress in 1..99 && downloadSpeed.isNotEmpty()) {
                         Text(text = downloadSpeed, fontSize = 13.sp, color = progressColor, fontWeight = FontWeight.Bold)
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                // 如果是失败状态(-1)或者是完成(100)，显示一条满的红/蓝线；否则按百分比显示
                 val fraction = if (downloadProgress == -1) 1f else (downloadProgress / 100f)
                 LinearProgressIndicator(
                     progress = { fraction },
@@ -384,21 +392,35 @@ private fun UpdateStyleDefault(
                     trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                 )
 
-                // 如果失败了，提供一个重试按钮
+                // 【核心修改】：失败状态显示重试，100% 状态显示立即安装
                 if (downloadProgress == -1) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { onConfirm(updateInfo.downloadUrl) }, modifier = Modifier.align(Alignment.End)) {
                         Text("点击重试")
                     }
+                } else if (downloadProgress == 100) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Button(
+                            onClick = { onConfirm(updateInfo.downloadUrl) },
+                            modifier = Modifier
+                                .height(44.dp)
+                                .fillMaxWidth(0.8f),
+                            shape = RoundedCornerShape(22.dp)
+                        ) {
+                            Text("立即安装")
+                        }
+                    }
                 }
             }
         } else {
-            // 【修改点】：使用 weight(1f) 让两个按钮完全对称
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 if (!updateInfo.isForceUpdate) {
                     OutlinedButton(
                         onClick = onDismiss,
-                        // 加了 weight(1f)
                         modifier = Modifier.weight(1f).height(40.dp),
                         shape = RoundedCornerShape(20.dp)
                     ) {
@@ -409,7 +431,6 @@ private fun UpdateStyleDefault(
 
                 Button(
                     onClick = { onConfirm(updateInfo.downloadUrl) },
-                    // 加了 weight(1f)
                     modifier = Modifier.weight(1f).height(40.dp),
                     shape = RoundedCornerShape(20.dp)
                 ) {
